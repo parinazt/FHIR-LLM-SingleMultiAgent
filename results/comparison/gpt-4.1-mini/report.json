@@ -1,0 +1,21 @@
+{
+  "expected_runs": 5,
+  "included_runs": [
+    1
+  ],
+  "excluded_runs": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "n_cases": 10,
+  "std_definition": "Sample standard deviation across runs (ddof=1). Undefined for n=1.",
+  "property_definition": "Resource top-level keys excluding resourceType and id; nested objects/arrays count as one property; Bundle/fullUrl excluded.",
+  "failure_policy": "Failed/invalid recorded executions contribute zero validated resources and properties. Missing executions are not treated as zero.",
+  "valid_executions": {
+    "single": 10,
+    "multi": 10
+  },
+  "interpretation": "Counts measure generated structure, not clinical completeness or correctness."
+}

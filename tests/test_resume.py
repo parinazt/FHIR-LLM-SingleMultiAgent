@@ -11,11 +11,11 @@ from workflow_common import WorkflowResult
 
 class ResumeTests(unittest.TestCase):
     setUp = config_tests.ExperimentTests.setUp
-    def run_with(self, workflow, *, resume=False, settings=None, continue_run=False):
+    def run_with(self, workflow, *, resume=False, settings=None, continue_run=False, run_id=None):
         with patch.dict('main.WORKFLOWS', {'single-agent': workflow}):
             return run_experiment(settings or Settings(num_of_execution=1), self.llm,
                                   self.dataset, self.output, self.validator, resume=resume,
-                                  continue_run=continue_run)
+                                  continue_run=continue_run, run_id=run_id)
 
     def test_resume_preserves_success_and_retries_failure(self):
         bundle = {'resourceType': 'Bundle', 'type': 'collection', 'entry': []}
@@ -122,6 +122,18 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(json.loads((self.output / 'experiment.json').read_text())[
             'identity']['num_of_execution'], 3)
         self.assertEqual(len(list((self.output / 'outputs').glob('*.json'))), 6)
+
+    def test_custom_run_id_and_collision(self):
+        workflow = Mock(return_value=WorkflowResult(
+            {'resourceType': 'Bundle', 'type': 'collection', 'entry': []}, True, 1))
+        self.run_with(workflow, run_id=3)
+        self.assertTrue((self.output / 'outputs' / '3_a.json').exists())
+        before = (self.output / 'results.csv').read_bytes()
+        with self.assertRaisesRegex(ValueError, 'already exists'):
+            self.run_with(workflow, run_id=3)
+        self.assertEqual((self.output / 'results.csv').read_bytes(), before)
+        self.run_with(workflow, continue_run=True)
+        self.assertTrue((self.output / 'outputs' / '4_a.json').exists())
 
     def test_continue_starts_new_run_and_preserves_technical_failure(self):
         bundle = {'resourceType': 'Bundle', 'type': 'collection', 'entry': []}

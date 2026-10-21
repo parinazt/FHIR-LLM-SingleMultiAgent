@@ -146,6 +146,81 @@ deleted. Use the same model, settings, prompts and dataset on each invocation.
 
 ## Compare single and multi across five runs
 
+To investigate why resource counts differ, run the structural diagnostic script:
+
+```bash
+python explain_json_differences.py --single-dir results/single/gpt-6-luna --multi-dir results/multi/gpt-6-luna --single-run-map 4:3 --output-dir results/comparison/gpt-6-luna/diagnostics
+```
+
+It separates the count difference exactly into (a) differences on paired valid
+outputs and (b) the contribution of cases completed by only one method. It reports
+these per case/type/run and aggregates per-run totals with mean and sample SD.
+Additional diagnostics count components, value nodes, text lengths, repeated
+status/code/subject fields, exact JSON repetitions ignoring root IDs, label presence
+and field occurrences. These are structural indicators, not semantic quality scores.
+
+`report.md` summarizes the decomposition; `case_diagnostics.csv`, `per_run.csv`,
+`summary.csv`, `label_presence.csv` and `field_presence.csv` expose the measurements.
+`review_candidates.csv` selects extremes plus reproducible random cases in both
+directions and equal-count cases for each resource type. `review_examples.jsonl`
+includes those cases' source notes and both sets of resources for inspection.
+Adjust `--sample-size` (default 3 per selection group) and `--seed` (default 42).
+No LLM calls are made; the script does not label differences as clinically correct,
+missing or hallucinated, and review candidates are not a representative error sample.
+
+For a detailed structural JSON comparison without plotting dependencies:
+
+```bash
+python compare_json_resources.py --single-dir results/single/gpt-6-luna --multi-dir results/multi/gpt-6-luna --single-run-map 4:3 --output-dir results/comparison/gpt-6-luna/json_resources
+```
+
+Omit the mapping when run IDs already match. Inputs are never modified. Both CSVs
+must contain matching case/run pairs after mapping; duplicate outcomes are rejected.
+The script reads validated Bundles and compares Patient, Condition, Observation,
+MedicationStatement and MedicationRequest independently, plus their total:
+
+- `case_run_counts.csv`: resource/property counts and multi-minus-single differences per case/run/type.
+- `field_occurrences.csv`: top-level field occurrence counts per case/run/type, including fields present on only one side.
+- `per_run.csv`: totals and case means within each run.
+- `summary.csv`: mean and sample SD of those per-run aggregates.
+- `case_summary.csv`: mean and sample SD across runs for each case/type.
+- `report.json`: input locations, run mapping and counting policy.
+
+Properties exclude resourceType/id; nested objects and arrays count once. Invalid
+outputs contribute zero; `--paired-valid` instead selects only cases completed by
+both methods within each run. No resources are paired by their arbitrary IDs, and
+field counts do not establish semantic correctness or clinical coverage.
+
+For CSV success and attempt metrics, without plotting dependencies:
+
+```powershell
+.\.venv\Scripts\python.exe compare_csv_metrics.py --single-csv results/single/gpt-6-luna/results.csv --multi-csv results/multi/gpt-6-luna/results.csv --output-dir results/comparison/gpt-6-luna/csv_metrics
+```
+
+This computes the mean of `fhir-valid` and `attempts` within EACH run, then the
+unweighted mean and sample SD (ddof=1) of those run means. Multiagent also includes
+patient, condition, observation, medication and merge attempts. Zero values for
+agents not invoked are included; blanks are excluded and their counts reported.
+`attempts` uses the recorded CSV metric, not a sum of agent calls. Success is also
+reported as a percentage, with SD in percentage points. A single run has no defined
+SD. Output: `per_run.csv` (run means and denominators), `summary.csv`, `report.json`.
+All run IDs are included by default; optional `--single-runs 1 2 4` and
+`--multi-runs 1 2 3` select subsets. Matching numeric IDs are not required because
+each method is aggregated independently across its replicates. Duplicate file/run
+outcomes are rejected rather than silently selecting a successful retry.
+
+For experiments split across computers, assign a distinct numeric ID explicitly:
+
+```powershell
+.\.venv\Scripts\python.exe main.py --provider openai --model gpt-6-luna --mode multiagent --run-id 3
+```
+
+`--run-id` runs exactly one pass, preserves existing results, and refuses an ID
+already present locally. It replaces `--continue` (do not combine the flags).
+IDs are not coordinated across computers: allocate them before starting. Keep the
+same prompts, configuration and dataset on all machines. A later `--continue`
+uses the next ID above the highest locally recorded ID.
+
 Install the plotting dependency and generate the comparison:
 
 ```powershell

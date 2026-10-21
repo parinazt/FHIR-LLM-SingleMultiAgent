@@ -1,0 +1,18 @@
+{
+  "single_dir": "C:\\Users\\Alfy\\Lavoro\\unisa\\mie2027\\FHIR-Anchor-LLM\\results\\single\\gpt-6-luna",
+  "multi_dir": "C:\\Users\\Alfy\\Lavoro\\unisa\\mie2027\\FHIR-Anchor-LLM\\results\\multi\\gpt-6-luna",
+  "single_run_map": {
+    "4": 3
+  },
+  "runs": [
+    1,
+    2,
+    3
+  ],
+  "n_case_run_pairs": 1500,
+  "paired_valid_only": false,
+  "properties": "Top-level resource fields excluding resourceType and id. Each object/array counts once; nested fields and Bundle/fullUrl excluded.",
+  "aggregation": "Mean and sample SD (ddof=1) across per-run totals or per-run case means. Case summary SD is across runs for the same case and resource type.",
+  "failures": "Recorded failed/invalid outputs contribute zero counts unless --paired-valid is used. Missing case/run records are rejected.",
+  "limitations": "Field occurrences are not unique clinical facts. No semantic comparison, resource matching by ID, or correctness scoring is performed."
+}

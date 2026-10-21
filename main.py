@@ -26,7 +26,7 @@ WORKFLOWS = {"single-agent": run_singleagent, "multiagent": run_multiagent}
 
 def run_experiment(settings: Settings, llm: LLMClient,
                    input_path: Path, output_dir: Path, validator=None, *, resume=False,
-                   continue_run=False) -> dict:
+                   continue_run=False, run_id=None) -> dict:
     """Repeat the same fixed dataset; keep every attempt, including failures.
 
     Each agent validates and repairs its output. Technical validator failures
@@ -47,6 +47,10 @@ def run_experiment(settings: Settings, llm: LLMClient,
         if output_dir.resolve() in source.resolve().parents:
             raise ValueError("Input notes must be outside the output directory")
     manifest = build_manifest(settings, llm, notes)
+    if run_id is not None:
+        if run_id < 1 or resume:
+            raise ValueError('--run-id must be positive and cannot be combined with --resume.')
+        continue_run = True
     latest = {}
     executions = range(1, settings.num_of_execution + 1)
     if continue_run:
@@ -77,7 +81,9 @@ def run_experiment(settings: Settings, llm: LLMClient,
                     used_ids.add(int(prefix))
         if resume:
             used_ids.update(item['run_id'] for item in previous_manifest.get('continuations', []))
-        execution = max(used_ids, default=0) + 1
+        if run_id is not None and run_id in used_ids:
+            raise ValueError(f'Run ID {run_id} already exists; no results were changed.')
+        execution = run_id if run_id is not None else max(used_ids, default=0) + 1
         executions = [execution]
         print(f'Continue mode: processing run {execution} only')
     validator = validator if validator is not None else FHIRValidator()
@@ -92,6 +98,7 @@ def run_experiment(settings: Settings, llm: LLMClient,
     if not resume:
         prepare_directory(output_dir, experiment=True)
         if continue_run:
+            manifest['identity']['num_of_execution'] = execution
             manifest['continuations'] = [{
                 'run_id': execution, 'started_at': datetime.now(timezone.utc).isoformat(),
                 'policy': 'always_new_run', 'implementation': manifest['identity']['implementation']}]
@@ -200,9 +207,13 @@ def main(arguments=None) -> None:
                         help="Keep results and skip completed cases with matching manifest; retry missing or failed cases")
     continuation.add_argument('--continue', dest='continue_run', action='store_true',
                               help='Always append one NEW run ID; preserve all previous failures and interrupted runs')
+    continuation.add_argument('--run-id', type=int,
+                              help='Append exactly one run with this positive numeric ID; refuse existing IDs')
     parser.add_argument("--base-url")
     args = parser.parse_args(arguments)
-    if args.continue_run and args.num_of_execution not in (None, 1):
+    if args.run_id is not None and args.run_id < 1:
+        parser.error('--run-id must be positive.')
+    if (args.continue_run or args.run_id is not None) and args.num_of_execution not in (None, 1):
         parser.error('--continue executes one run per invocation; omit --num-of-execution or set it to 1.')
     if not args.model:
         parser.error("Provide --model or set LLM_MODEL in the process environment")
@@ -213,7 +224,7 @@ def main(arguments=None) -> None:
             development=loaded.development,
             mode=args.mode if args.mode is not None else loaded.mode,
             max_attempts=args.max_attempts if args.max_attempts is not None else loaded.max_attempts,
-            num_of_execution=(1 if args.continue_run else args.num_of_execution if args.num_of_execution is not None
+            num_of_execution=(1 if args.continue_run or args.run_id is not None else args.num_of_execution if args.num_of_execution is not None
                               else loaded.num_of_execution),
         )
         llm = LLMClient(args.model, args.provider, api_key=settings.api_key(args.provider),
@@ -224,7 +235,7 @@ def main(arguments=None) -> None:
     output = args.output_dir or result_directory(settings.mode, args.model)
     try:
         report = run_experiment(settings, llm, args.input, output, resume=args.resume,
-                                continue_run=args.continue_run)
+                                continue_run=args.continue_run, run_id=args.run_id)
     except (OSError, ValueError, ValidatorError) as exc:
         parser.error(str(exc))
     print(f"Experiment saved in {output}. results.csv contains structural FHIR validation results (external terminology disabled).")

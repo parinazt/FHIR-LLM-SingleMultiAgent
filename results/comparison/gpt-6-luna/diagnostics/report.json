@@ -1,0 +1,23 @@
+{
+  "runs": [
+    1,
+    2,
+    3
+  ],
+  "single_run_map": {
+    "4": 3
+  },
+  "seed": 42,
+  "samples_per_direction_and_type": 3,
+  "definitions": {
+    "delta": "Multi minus single. Failed/invalid outputs count as zero.",
+    "decomposition": "delta = paired_output_effect + unpaired_success_effect. The first term uses cases valid in both; the second uses cases valid in only one.",
+    "properties": "Top-level fields except resourceType/id; arrays and objects count once.",
+    "scaffold": "Occurrences of status, code and subject. These repeat with resource splitting.",
+    "value_nodes": "value[x] fields at resource and component levels; not a clinical fact count.",
+    "exact_duplicates": "Identical JSON resources after removing only the root id; flags structural repetition, not proven clinical duplication.",
+    "labels": "Normalized code.text string presence; different strings may describe the same fact.",
+    "review": "Extremes plus seeded random cases in each direction/type. Exploratory, not representative."
+  },
+  "limitations": "No semantic validation. An absent field/label is not proof of missing information. More resources, fields or value nodes do not establish better clinical coverage."
+}

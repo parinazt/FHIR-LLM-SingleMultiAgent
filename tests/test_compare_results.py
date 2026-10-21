@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from compare_results import aggregate, load_results
+from compare_results import aggregate, load_results, remap_runs
 
 
 def entry(value):
@@ -14,6 +14,12 @@ def entry(value):
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_report_only_mapping_and_collision(self):
+        data = {('a.txt', 4): entry(2)}
+        self.assertIn(('a.txt', 3), remap_runs(data, {4: 3}))
+        self.assertIn(('a.txt', 4), data)
+        with self.assertRaisesRegex(ValueError, 'collision'):
+            remap_runs({('a.txt', 3): entry(1), **data}, {4: 3})
     def test_sd_is_across_runs_and_total_is_sum_before_sd(self):
         single = {(file, run): entry(run * factor) for file, factor in [('a.txt', 1), ('b.txt', 2)]
                   for run in range(1, 6)}

@@ -49,6 +49,17 @@ def summarize(values):
             'std': statistics.stdev(values) if len(values) > 1 else None}
 
 
+def remap_runs(data, mapping):
+    """Align replicate IDs for reporting without editing experimental records."""
+    result = {}
+    for (file, run), value in data.items():
+        key = (file, mapping.get(run, run))
+        if key in result:
+            raise ValueError(f'Run mapping causes a collision: {key}')
+        result[key] = value
+    return result
+
+
 def aggregate(single, multi, expected_runs=5, allow_incomplete=False):
     datasets = {'single': single, 'multi': multi}
     keys = set(single) | set(multi)
@@ -181,6 +192,7 @@ def main():
     parser.add_argument('--expected-runs', type=int, default=5)
     parser.add_argument('--allow-incomplete', action='store_true')
     parser.add_argument('--page-size', type=int, default=25)
+    parser.add_argument('--single-run-map', default='', help='Report-only run mapping, e.g. 4:3')
     args = parser.parse_args()
     if args.expected_runs < 1 or args.page_size < 1:
         parser.error('--expected-runs and --page-size must be positive.')
@@ -188,8 +200,10 @@ def main():
            for p in (args.single_dir, args.multi_dir)):
         parser.error('The report directory must not contain or replace an input directory.')
     try:
-        raw, summary, metadata = aggregate(load_results(args.single_dir), load_results(args.multi_dir),
+        mapping = dict(tuple(map(int, pair.split(':'))) for pair in args.single_run_map.split(',') if pair)
+        raw, summary, metadata = aggregate(remap_runs(load_results(args.single_dir), mapping), load_results(args.multi_dir),
                                            args.expected_runs, args.allow_incomplete)
+        metadata['single_run_mapping'] = mapping
         args.output_dir.mkdir(parents=True, exist_ok=True)
         # Remove only charts produced by this script, to avoid obsolete pages.
         for pattern in ('comparison_*.png', 'comparison_*.pdf'):

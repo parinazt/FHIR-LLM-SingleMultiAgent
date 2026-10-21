@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from llm import LLMClient, LLMResponse
-from token_usage import CURRENT_USAGE
-from conversation_log import log_event
-from fhir_validator import FHIRValidator
+from .llm import LLMClient, LLMResponse
+from .token_usage import CURRENT_USAGE
+from .conversation_log import log_event
+from .fhir_validator import FHIRValidator
 
 PROMPT_DIR = Path(__file__).resolve().parent / "agents"
 SPECIALISTS = ("patient", "condition", "observation", "medication")

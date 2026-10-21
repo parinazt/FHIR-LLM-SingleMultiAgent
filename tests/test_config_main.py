@@ -7,10 +7,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from config import Settings, load_settings
-from main import run_experiment
-from workflow_common import WorkflowResult
-from fhir_validator import ValidatorError
+from app.config import Settings, load_settings
+from app.main import run_experiment
+from app.workflow_common import WorkflowResult
+from app.fhir_validator import ValidatorError
+from app.token_usage import usage_fields
 
 
 class ConfigTests(unittest.TestCase):
@@ -85,7 +86,7 @@ class ExperimentTests(unittest.TestCase):
         workflow = Mock(side_effect=[WorkflowResult({'resourceType': 'Bundle'}, True, 1), RuntimeError('secret'),
                                      WorkflowResult({'resourceType': 'Patient'}, False, 3), WorkflowResult({'resourceType': 'Bundle'}, True, 1)])
         settings = Settings(num_of_execution=2, mode='multiagent')
-        with patch.dict('main.WORKFLOWS', {'multiagent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'multiagent': workflow}):
             report = run_experiment(settings, self.llm, self.dataset, self.output, self.validator)
         self.assertEqual(workflow.call_count, 4)
         self.assertEqual([c.args[0] for c in workflow.call_args_list],
@@ -99,7 +100,7 @@ class ExperimentTests(unittest.TestCase):
                              ['timestamp', 'file', 'run-id', 'fhir-valid', 'attempts',
                               'single-attempts', 'patient-attempts', 'condition-attempts',
                               'observation-attempts', 'medication-attempts', 'merge-attempts']
-                             + __import__('token_usage').usage_fields(
+                             + usage_fields(
                                  ('single', 'patient', 'condition', 'observation', 'medication', 'merge')))
         self.assertEqual([r['run-id'] for r in rows], ['1', '1', '2', '2'])
         self.assertEqual([r['file'] for r in rows], ['a.txt', 'b.txt', 'a.txt', 'b.txt'])
@@ -111,7 +112,7 @@ class ExperimentTests(unittest.TestCase):
 
     def test_single_mode_dispatches_five_runs_by_default(self):
         single, multi = Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 1)), Mock()
-        with patch.dict('main.WORKFLOWS', {'single-agent': single, 'multiagent': multi}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': single, 'multiagent': multi}):
             run_experiment(Settings(), self.llm, self.dataset / 'a.txt', self.output, self.validator)
         self.assertEqual(single.call_count, 5)
         multi.assert_not_called()
@@ -122,17 +123,17 @@ class ExperimentTests(unittest.TestCase):
         (stale / 'bundle.json').write_text('{}')
         (self.output / 'notes.md').write_text('Keep this file')
         workflow = Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 1))
-        with patch.dict('main.WORKFLOWS', {'single-agent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': workflow}):
             run_experiment(Settings(num_of_execution=1), self.llm, self.dataset, self.output, self.validator)
         self.assertEqual(workflow.call_count, 2)
         self.assertFalse(stale.exists())
         self.assertTrue((self.output / 'notes.md').exists())
 
     def test_failed_rerun_removes_stale_json(self):
-        with patch.dict('main.WORKFLOWS', {
+        with patch.dict('app.main.WORKFLOWS', {
                 'single-agent': Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 1))}):
             run_experiment(Settings(num_of_execution=1), self.llm, self.dataset, self.output, self.validator)
-        with patch.dict('main.WORKFLOWS', {'single-agent': Mock(side_effect=RuntimeError)}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': Mock(side_effect=RuntimeError)}):
             run_experiment(Settings(num_of_execution=1), self.llm, self.dataset, self.output, self.validator)
         self.assertEqual(list((self.output / 'outputs').iterdir()), [])
         with (self.output / 'results.csv').open() as stream:
@@ -140,7 +141,7 @@ class ExperimentTests(unittest.TestCase):
 
     def test_validator_failure_writes_unknown_and_aborts(self):
         workflow = Mock(side_effect=ValidatorError("Unavailable"))
-        with patch.dict('main.WORKFLOWS', {'single-agent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': workflow}):
             with self.assertRaises(ValidatorError):
                 run_experiment(Settings(), self.llm, self.dataset, self.output, self.validator)
         self.assertEqual(workflow.call_count, 1)
@@ -152,7 +153,7 @@ class ExperimentTests(unittest.TestCase):
     def test_csv_preserves_different_agent_attempt_counts(self):
         counts = {'patient': 3, 'condition': 1, 'observation': 2, 'medication': 1, 'merge': 2}
         workflow = Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 5, counts))
-        with patch.dict('main.WORKFLOWS', {'multiagent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'multiagent': workflow}):
             run_experiment(Settings(mode='multiagent', num_of_execution=1), self.llm,
                            self.dataset / 'a.txt', self.output, self.validator)
         with (self.output / 'results.csv').open() as stream:
@@ -166,7 +167,7 @@ class ExperimentTests(unittest.TestCase):
         def fail(*args, attempt_counts):
             attempt_counts.update(patient=2, condition=1)
             raise ValidatorError('Timeout')
-        with patch.dict('main.WORKFLOWS', {'multiagent': fail}):
+        with patch.dict('app.main.WORKFLOWS', {'multiagent': fail}):
             with self.assertRaises(ValidatorError):
                 run_experiment(Settings(mode='multiagent'), self.llm,
                                self.dataset, self.output, self.validator)
@@ -182,7 +183,7 @@ class ExperimentTests(unittest.TestCase):
         for index in reversed(range(12)):
             (self.dataset / f'{index:02d}.txt').write_text(f'note {index}')
         workflow = Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 1))
-        with patch.dict('main.WORKFLOWS', {'single-agent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': workflow}):
             run_experiment(Settings(development=True, num_of_execution=2), self.llm,
                            self.dataset, self.output, self.validator)
         self.assertEqual(workflow.call_count, 20)
@@ -193,7 +194,7 @@ class ExperimentTests(unittest.TestCase):
         for index in range(12):
             (self.dataset / f'{index:02d}.txt').write_text(f'note {index}')
         workflow = Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 1))
-        with patch.dict('main.WORKFLOWS', {'single-agent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': workflow}):
             run_experiment(Settings(development=False, num_of_execution=1), self.llm,
                            self.dataset, self.output, self.validator)
         self.assertEqual(workflow.call_count, 14)

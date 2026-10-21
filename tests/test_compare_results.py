@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from compare_results import aggregate, load_results, remap_runs
+from app.compare_results import aggregate, load_results, remap_runs
 
 
 def entry(value):

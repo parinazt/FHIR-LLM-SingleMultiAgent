@@ -4,6 +4,22 @@ Convert original clinical notes into FHIR R4 (4.0.1) Bundles and compare a
 single-call baseline with four resource specialists followed by an LLM Merge
 agent. Python 3.9+ and Java 17+ are required.
 
+## Application layout
+
+The active single/multiagent implementation and analysis tools live in `app/`.
+Resource prompts are stored in `app/agents/`. Run commands from the project root:
+
+```bash
+python -m app.main --provider openai --model gpt-6-luna --mode single-agent --continue
+python -m app.compare_csv_metrics --single-csv results/single/gpt-6-luna/results.csv --multi-csv results/multi/gpt-6-luna/results.csv
+```
+
+The root `main.py` is a compatibility launcher, so `python main.py ...` still works.
+Data, results, `.env`, dependencies and the Java validator keep their existing
+locations. Tests remain in `tests/`. Historical anchored/unanchored scripts stay at
+the project root. Existing experiment manifests retain their original provenance;
+new experiments use the current application layout and implementation hashes.
+
 ## Setup
 
 ```bash
@@ -149,7 +165,7 @@ deleted. Use the same model, settings, prompts and dataset on each invocation.
 To investigate why resource counts differ, run the structural diagnostic script:
 
 ```bash
-python explain_json_differences.py --single-dir results/single/gpt-6-luna --multi-dir results/multi/gpt-6-luna --single-run-map 4:3 --output-dir results/comparison/gpt-6-luna/diagnostics
+python -m app.explain_json_differences --single-dir results/single/gpt-6-luna --multi-dir results/multi/gpt-6-luna --single-run-map 4:3 --output-dir results/comparison/gpt-6-luna/diagnostics
 ```
 
 It separates the count difference exactly into (a) differences on paired valid
@@ -171,7 +187,7 @@ missing or hallucinated, and review candidates are not a representative error sa
 For a detailed structural JSON comparison without plotting dependencies:
 
 ```bash
-python compare_json_resources.py --single-dir results/single/gpt-6-luna --multi-dir results/multi/gpt-6-luna --single-run-map 4:3 --output-dir results/comparison/gpt-6-luna/json_resources
+python -m app.compare_json_resources --single-dir results/single/gpt-6-luna --multi-dir results/multi/gpt-6-luna --single-run-map 4:3 --output-dir results/comparison/gpt-6-luna/json_resources
 ```
 
 Omit the mapping when run IDs already match. Inputs are never modified. Both CSVs
@@ -194,7 +210,7 @@ field counts do not establish semantic correctness or clinical coverage.
 For CSV success and attempt metrics, without plotting dependencies:
 
 ```powershell
-.\.venv\Scripts\python.exe compare_csv_metrics.py --single-csv results/single/gpt-6-luna/results.csv --multi-csv results/multi/gpt-6-luna/results.csv --output-dir results/comparison/gpt-6-luna/csv_metrics
+.\.venv\Scripts\python.exe -m app.compare_csv_metrics --single-csv results/single/gpt-6-luna/results.csv --multi-csv results/multi/gpt-6-luna/results.csv --output-dir results/comparison/gpt-6-luna/csv_metrics
 ```
 
 This computes the mean of `fhir-valid` and `attempts` within EACH run, then the
@@ -225,7 +241,7 @@ Install the plotting dependency and generate the comparison:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-analysis.txt
-.\.venv\Scripts\python.exe compare_results.py --single-dir results/single/gpt-4.1-mini --multi-dir results/multi/gpt-4.1-mini --output-dir results/comparison/gpt-4.1-mini
+.\.venv\Scripts\python.exe -m app.compare_results --single-dir results/single/gpt-4.1-mini --multi-dir results/multi/gpt-4.1-mini --output-dir results/comparison/gpt-4.1-mini
 ```
 
 The script writes PNG plots for dataset totals, totals by FHIR resource type,
@@ -308,21 +324,21 @@ reports to prevent them from describing replaced outputs.
 
 | File | Responsibility |
 |---|---|
-| `config.py` | Load and validate configuration |
-| `main.py` | Select a workflow and repeat it over the input dataset |
-| `agent.py` | System prompts and bounded generate/validate/correct loop |
-| `fhir_validator.py` | HL7 JAR adapter, resource contexts, and OperationOutcome parser |
-| `llm.py` | Shared OpenAI/OpenRouter Chat Completions client |
-| `workflow_singleagent.py` | Single-agent baseline with validation and correction |
-| `workflow_multiagent.py` | Four specialists followed by Merge |
-| `workflow_common.py` | Workflow result contract, JSON writing, and standalone CLI |
-| `agents/common.md` | Shared FHIR and source-faithfulness instructions |
-| `agents/patient.md` | Patient specialist |
-| `agents/condition.md` | Condition specialist |
-| `agents/observation.md` | Observation specialist |
-| `agents/medication.md` | MedicationStatement and MedicationRequest specialist |
-| `agents/merge.md` | Bundle assembly agent |
-| `agents/single.md` | Single-agent task instructions |
+| `app/config.py` | Load and validate configuration |
+| `app/main.py` | Select a workflow and repeat it over the input dataset |
+| `app/agent.py` | System prompts and bounded generate/validate/correct loop |
+| `app/fhir_validator.py` | HL7 JAR adapter, resource contexts, and OperationOutcome parser |
+| `app/llm.py` | Shared OpenAI/OpenRouter Chat Completions client |
+| `app/workflow_singleagent.py` | Single-agent baseline with validation and correction |
+| `app/workflow_multiagent.py` | Four specialists followed by Merge |
+| `app/workflow_common.py` | Workflow result contract, JSON writing, and standalone CLI |
+| `app/agents/common.md` | Shared FHIR and source-faithfulness instructions |
+| `app/agents/patient.md` | Patient specialist |
+| `app/agents/condition.md` | Condition specialist |
+| `app/agents/observation.md` | Observation specialist |
+| `app/agents/medication.md` | MedicationStatement and MedicationRequest specialist |
+| `app/agents/merge.md` | Bundle assembly agent |
+| `app/agents/single.md` | Single-agent task instructions |
 
 The single-agent system prompt includes the same common and resource-specific
 rules as the specialists. All specialists receive the original note. Merge
@@ -337,8 +353,8 @@ Standalone commands use the same compact result layout as `main.py`, default to
 one execution, and replace the previous generated results for that mode/model.
 
 ```bash
-python workflow_singleagent.py --provider openai --model gpt-4.1-mini
-python workflow_multiagent.py --provider openai --model gpt-4.1-mini
+python -m app.workflow_singleagent --provider openai --model gpt-4.1-mini
+python -m app.workflow_multiagent --provider openai --model gpt-4.1-mini
 ```
 
 ## Results and current evaluation scope

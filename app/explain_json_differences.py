@@ -9,8 +9,8 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from compare_json_resources import load_inventory
-from compare_results import TYPES, write_csv
+from .compare_json_resources import load_inventory
+from .compare_results import TYPES, write_csv
 
 
 def normalize_text(text):

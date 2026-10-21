@@ -4,10 +4,10 @@ from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
 from threading import Lock
 
-from agent import SPECIALISTS, merge_agent, specialist
-from fhir_validator import FHIRValidator
-from llm import LLMClient
-from workflow_common import WorkflowResult, run_cli
+from .agent import SPECIALISTS, merge_agent, specialist
+from .fhir_validator import FHIRValidator
+from .llm import LLMClient
+from .workflow_common import WorkflowResult, run_cli
 
 
 def run_multiagent(note: str, llm: LLMClient, validator: FHIRValidator,

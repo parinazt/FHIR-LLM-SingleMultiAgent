@@ -3,7 +3,7 @@ import json
 import unittest
 
 import test_compare_json_resources as fixtures
-from explain_json_differences import analyze, decompose, profile
+from app.explain_json_differences import analyze, decompose, profile
 
 
 class DifferenceTests(unittest.TestCase):

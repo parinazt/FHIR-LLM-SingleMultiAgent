@@ -2,9 +2,9 @@
 import unittest
 from unittest.mock import Mock
 
-from agent import Agent
-from llm import LLMResponse
-from token_usage import CURRENT_USAGE, TokenUsage
+from app.agent import Agent
+from app.llm import LLMResponse
+from app.token_usage import CURRENT_USAGE, TokenUsage
 
 
 class TokenUsageTests(unittest.TestCase):

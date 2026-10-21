@@ -9,7 +9,7 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from compare_results import TYPES, load_results, remap_runs, write_csv
+from .compare_results import TYPES, load_results, remap_runs, write_csv
 
 
 def load_inventory(directory, mapping):

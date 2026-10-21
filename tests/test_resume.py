@@ -4,15 +4,15 @@ import unittest
 from unittest.mock import Mock, patch
 
 import test_config_main as config_tests
-from config import Settings
-from main import run_experiment
-from workflow_common import WorkflowResult
+from app.config import Settings
+from app.main import run_experiment
+from app.workflow_common import WorkflowResult
 
 
 class ResumeTests(unittest.TestCase):
     setUp = config_tests.ExperimentTests.setUp
     def run_with(self, workflow, *, resume=False, settings=None, continue_run=False, run_id=None):
-        with patch.dict('main.WORKFLOWS', {'single-agent': workflow}):
+        with patch.dict('app.main.WORKFLOWS', {'single-agent': workflow}):
             return run_experiment(settings or Settings(num_of_execution=1), self.llm,
                                   self.dataset, self.output, self.validator, resume=resume,
                                   continue_run=continue_run, run_id=run_id)
@@ -81,10 +81,10 @@ class ResumeTests(unittest.TestCase):
     def test_resume_rejects_prompt_changes(self):
         workflow = Mock(return_value=WorkflowResult({'resourceType': 'Bundle'}, True, 1))
         self.run_with(workflow)
-        from agent import single_agent
+        from app.agent import single_agent
         altered = single_agent(self.llm)
         altered.system_prompt += '\nchanged prompt'
-        with patch('experiment_manifest.single_agent', return_value=altered):
+        with patch('app.experiment_manifest.single_agent', return_value=altered):
             with self.assertRaisesRegex(ValueError, 'differ'):
                 self.run_with(workflow, resume=True)
 

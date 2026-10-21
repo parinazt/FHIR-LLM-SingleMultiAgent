@@ -8,7 +8,7 @@ from typing import Optional
 
 from dotenv import dotenv_values
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 MODES = ("single-agent", "multiagent")
 
 

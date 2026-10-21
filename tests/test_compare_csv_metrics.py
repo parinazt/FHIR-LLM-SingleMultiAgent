@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from compare_csv_metrics import AGENTS, read_runs, summarize
+from app.compare_csv_metrics import AGENTS, read_runs, summarize
 
 
 class CSVMetricTests(unittest.TestCase):

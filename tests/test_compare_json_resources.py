@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from compare_json_resources import compare
+from app.compare_json_resources import compare
 
 
 class JSONComparisonTests(unittest.TestCase):

@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from results_paths import prepare_directory, result_directory
+from app.results_paths import prepare_directory, result_directory
 
 
 class ResultPathTests(unittest.TestCase):

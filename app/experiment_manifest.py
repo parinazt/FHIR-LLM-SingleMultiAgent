@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import platform
 
-from agent import SPECIALISTS, merge_agent, single_agent, specialist
+from .agent import SPECIALISTS, merge_agent, single_agent, specialist
 
 
 def digest(text):

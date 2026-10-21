@@ -20,5 +20,5 @@ def write_json(path: Path, value: object) -> None:
 
 
 def run_cli(mode: str) -> None:
-    from main import main
+    from .main import main
     main(["--mode", mode, "--num-of-execution", "1", *sys.argv[1:]])

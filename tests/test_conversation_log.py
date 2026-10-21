@@ -6,10 +6,10 @@ from contextvars import copy_context
 from pathlib import Path
 from unittest.mock import Mock
 
-from agent import Agent
-from conversation_log import CURRENT_LOG, ConversationLog
-from fhir_validator import ValidationResult
-from llm import LLMResponse
+from app.agent import Agent
+from app.conversation_log import CURRENT_LOG, ConversationLog
+from app.fhir_validator import ValidationResult
+from app.llm import LLMResponse
 
 
 class ConversationLogTests(unittest.TestCase):

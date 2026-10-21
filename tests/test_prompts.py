@@ -2,8 +2,8 @@
 import json
 import unittest
 
-from agent import SPECIALISTS, merge_agent, single_agent, specialist
-from fhir_validator import FHIRValidator, ValidationResult
+from app.agent import SPECIALISTS, merge_agent, single_agent, specialist
+from app.fhir_validator import FHIRValidator, ValidationResult
 from unittest.mock import Mock
 
 

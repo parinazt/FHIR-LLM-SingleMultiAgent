@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from fhir_validator import FHIRValidator, ValidationResult, ValidatorError, parse_outcome
+from app.fhir_validator import FHIRValidator, ValidationResult, ValidatorError, parse_outcome
 
 
 def outcome(severity='information', code='informational'):
@@ -76,13 +76,13 @@ class ValidatorTests(unittest.TestCase):
                 self.assertNotIn('shell', kwargs)
                 Path(command[command.index('-output') + 1]).write_text(json.dumps(outcome('error')))
                 return SimpleNamespace(returncode=1)
-            with patch('fhir_validator.shutil.which', return_value='/java'):
-                with patch('fhir_validator.subprocess.run', side_effect=invoke):
+            with patch('app.fhir_validator.shutil.which', return_value='/java'):
+                with patch('app.fhir_validator.subprocess.run', side_effect=invoke):
                     self.assertFalse(validator.validate({'resourceType': 'Patient'}).valid)
-                with patch('fhir_validator.subprocess.run',
+                with patch('app.fhir_validator.subprocess.run',
                            side_effect=subprocess.TimeoutExpired('java', 1)):
                     with self.assertRaises(ValidatorError):
                         validator.validate({})
-                with patch('fhir_validator.subprocess.run', return_value=SimpleNamespace(returncode=1)):
+                with patch('app.fhir_validator.subprocess.run', return_value=SimpleNamespace(returncode=1)):
                     with self.assertRaises(ValidatorError):
                         validator.validate({})

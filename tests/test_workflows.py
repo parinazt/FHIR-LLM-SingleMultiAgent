@@ -7,11 +7,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from agent import PROMPT_DIR, SPECIALISTS, single_agent, specialist
-from llm import LLMClient, LLMResponse
-from fhir_validator import ValidationResult, ValidatorError
-from workflow_multiagent import run_multiagent
-from workflow_singleagent import run_singleagent
+from app.agent import PROMPT_DIR, SPECIALISTS, single_agent, specialist
+from app.llm import LLMClient, LLMResponse
+from app.fhir_validator import ValidationResult, ValidatorError
+from app.workflow_multiagent import run_multiagent
+from app.workflow_singleagent import run_singleagent
 
 BUNDLE = {"resourceType": "Bundle", "type": "collection", "entry": []}
 
@@ -57,7 +57,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_specialists_overlap_and_usage_reaches_parent(self):
         from threading import Barrier, Lock
-        from token_usage import CURRENT_USAGE, TokenUsage
+        from app.token_usage import CURRENT_USAGE, TokenUsage
         barrier, lock = Barrier(4), Lock()
         calls = []
         class ConcurrentLLM:
